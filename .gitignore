@@ -1,0 +1,23 @@
+# Root
+node_modules/
+.DS_Store
+
+# Excel source data (keep locally, don't expose)
+file/
+
+# Frontend
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local
+frontend/.env*.local
+
+# Backend
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/venv/
+backend/.venv/
+
+# Misc
+*.log
+.turbo/
