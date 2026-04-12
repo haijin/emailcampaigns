@@ -46,7 +46,7 @@ export default function Sidebar() {
             <Send className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight">TES Campaigns</p>
+            <p className="font-bold text-sm leading-tight">AI Campaigns</p>
             <p className="text-xs text-slate-400">Email Manager</p>
           </div>
         </div>

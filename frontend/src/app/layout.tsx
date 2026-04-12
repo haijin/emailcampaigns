@@ -4,8 +4,8 @@ import AppShell from '@/components/AppShell'
 import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
-  title: 'TES Email Campaigns',
-  description: 'Email campaign management for TES Active Agents',
+  title: 'AI Campaigns',
+  description: 'AI-powered email campaign management',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

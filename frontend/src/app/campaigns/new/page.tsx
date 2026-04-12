@@ -46,7 +46,7 @@ export default function NewCampaignPage() {
   const [form, setForm] = useState({
     name:             '',
     subject:          '',
-    from_name:        'TES Campaigns',
+    from_name:        'AI Campaigns',
     from_email:       '',
     reply_to:         '',
     filter_country:   '',
