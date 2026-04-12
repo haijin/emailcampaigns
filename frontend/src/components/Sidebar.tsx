@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
-  LayoutDashboard, Upload, Users, Mail, PlusCircle, Send, LogOut, User,
+  LayoutDashboard, Upload, Users, Mail, PlusCircle, Send, LogOut, User, FlaskConical,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -14,6 +14,7 @@ const nav = [
   { href: '/agents',       label: 'Agents',       icon: Users },
   { href: '/campaigns',    label: 'Campaigns',    icon: Mail },
   { href: '/campaigns/new',label: 'New Campaign', icon: PlusCircle },
+  { href: '/skills',       label: 'Skills',       icon: FlaskConical },
 ]
 
 export default function Sidebar() {

@@ -89,6 +89,31 @@ export interface CampaignRecipient {
   created_at: string
 }
 
+export type SkillType = 'contact_search' | 'email_draft'
+
+export interface SkillConfig {
+  tone?: string
+  length?: string
+  language?: string
+  max_results?: number
+  confidence_threshold?: string
+  [key: string]: unknown
+}
+
+export interface Skill {
+  id: string
+  type: SkillType
+  name: string
+  description: string | null
+  instructions: string
+  config: SkillConfig
+  is_active: boolean
+  is_default: boolean
+  usage_count: number
+  created_at: string
+  updated_at: string
+}
+
 export type ContactType =
   | 'email'
   | 'phone'

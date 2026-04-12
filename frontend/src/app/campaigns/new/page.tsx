@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Users, Eye } from 'lucide-react'
+import { ArrowLeft, Users, Eye, Wand2, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { Skill } from '@/lib/types'
 
 const DEFAULT_HTML = `<!DOCTYPE html>
 <html>
@@ -40,8 +41,46 @@ const DEFAULT_HTML = `<!DOCTYPE html>
 
 export default function NewCampaignPage() {
   const router = useRouter()
-  const [saving, setSaving]   = useState(false)
-  const [preview, setPreview] = useState(false)
+  const [saving, setSaving]     = useState(false)
+  const [preview, setPreview]   = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [showAI, setShowAI]     = useState(false)
+  const [draftSkills, setDraftSkills] = useState<Skill[]>([])
+  const [selectedSkillId, setSelectedSkillId] = useState('')
+  const [brief, setBrief] = useState('')
+
+  useEffect(() => {
+    fetch('/api/skills?type=email_draft').then((r) => r.json()).then((d) => {
+      const skills: Skill[] = d.data ?? []
+      setDraftSkills(skills)
+      const def = skills.find((s) => s.is_default)
+      if (def) setSelectedSkillId(def.id)
+    })
+  }, [])
+
+  const draftWithAI = async () => {
+    if (!brief.trim()) { toast.error('Please enter a brief first'); return }
+    setDrafting(true)
+    const res  = await fetch('/api/skills/draft-email', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        skill_id:      selectedSkillId || undefined,
+        brief,
+        campaign_name: form.name,
+        from_name:     form.from_name,
+      }),
+    })
+    const data = await res.json()
+    setDrafting(false)
+    if (res.ok) {
+      set('html_content', data.html)
+      toast.success(`Drafted using: ${data.skill_name}`)
+      setShowAI(false)
+    } else {
+      toast.error(data.error ?? 'Draft failed')
+    }
+  }
 
   const [form, setForm] = useState({
     name:             '',
@@ -158,14 +197,80 @@ export default function NewCampaignPage() {
         <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-800">Email Content *</h2>
-            <button
-              type="button"
-              onClick={() => setPreview(!preview)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              <Eye className="w-4 h-4" /> {preview ? 'Edit' : 'Preview'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowAI(!showAI)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors border ${
+                  showAI ? 'bg-purple-600 text-white border-purple-600' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Wand2 className="w-4 h-4" />
+                Draft with AI
+                {showAI ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreview(!preview)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                <Eye className="w-4 h-4" /> {preview ? 'Edit' : 'Preview'}
+              </button>
+            </div>
           </div>
+
+          {/* AI Draft Panel */}
+          {showAI && (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-medium text-purple-800 flex items-center gap-2">
+                <Wand2 className="w-4 h-4" /> AI Email Drafting
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs font-medium text-purple-700">Brief / Key Message *</label>
+                  <textarea
+                    value={brief}
+                    onChange={(e) => setBrief(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Announce our new summer 2025 packages to Australia. Highlight 20% early-bird discount. Encourage agents to book by end of month."
+                    className="w-full mt-1 px-3 py-2 text-sm border border-purple-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-purple-700">Writing Style (Skill)</label>
+                  <select
+                    value={selectedSkillId}
+                    onChange={(e) => setSelectedSkillId(e.target.value)}
+                    className="w-full mt-1 px-2 py-1.5 text-sm border border-purple-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-300"
+                  >
+                    {draftSkills.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}{s.is_default ? ' ★' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedSkillId && (
+                    <p className="text-xs text-purple-500 mt-1">
+                      {draftSkills.find((s) => s.id === selectedSkillId)?.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={draftWithAI}
+                disabled={drafting}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {drafting
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
+                  : <><Wand2 className="w-4 h-4" /> Generate Email HTML</>}
+              </button>
+              <p className="text-xs text-purple-500">
+                AI will generate complete HTML. You can review and edit it below before saving.
+              </p>
+            </div>
+          )}
 
           <p className="text-xs text-slate-400">
             Use <code className="bg-slate-100 px-1 rounded">{'{{name}}'}</code> as a placeholder for the agent&apos;s name.

@@ -8,7 +8,7 @@ import {
   Sparkles, Loader2, ExternalLink, Building2, Tag, Save,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { Agent, AgentContact, ContactType, SearchedContact } from '@/lib/types'
+import { Agent, AgentContact, ContactType, SearchedContact, Skill } from '@/lib/types'
 
 // ── Contact type config ────────────────────────────────────────────────────
 const CONTACT_TYPES: { value: ContactType; label: string; icon: React.ElementType; placeholder: string }[] = [
@@ -122,6 +122,8 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   const [contacts, setContacts]     = useState<AgentContact[]>([])
   const [loading, setLoading]       = useState(true)
   const [editMode, setEditMode]     = useState(false)
+  const [searchSkills, setSearchSkills] = useState<Skill[]>([])
+  const [selectedSkillId, setSelectedSkillId] = useState<string>('')
   const [saving, setSaving]         = useState(false)
   const [searching, setSearching]   = useState(false)
   const [suggestions, setSuggestions] = useState<SearchedContact[]>([])
@@ -141,11 +143,17 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
   })
 
   const loadAgent = useCallback(async () => {
-    const [agentRes, contactsRes] = await Promise.all([
+    const [agentRes, contactsRes, skillsRes] = await Promise.all([
       fetch(`/api/agents/${id}`),
       fetch(`/api/agents/${id}/contacts`),
+      fetch('/api/skills?type=contact_search'),
     ])
-    const [agentData, contactsData] = await Promise.all([agentRes.json(), contactsRes.json()])
+    const [agentData, contactsData, skillsData] = await Promise.all([
+      agentRes.json(), contactsRes.json(), skillsRes.json(),
+    ])
+    setSearchSkills(skillsData.data ?? [])
+    const defSkill = (skillsData.data ?? []).find((s: Skill) => s.is_default)
+    if (defSkill) setSelectedSkillId(defSkill.id)
     if (agentData.data) {
       setAgent(agentData.data)
       const a = agentData.data
@@ -239,7 +247,11 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
     setSearching(true)
     setSuggestions([])
     try {
-      const res  = await fetch(`/api/agents/${id}/search`, { method: 'POST' })
+      const res  = await fetch(`/api/agents/${id}/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill_id: selectedSkillId || undefined }),
+      })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? 'Search failed'); return }
       if (data.contacts.length === 0) { toast('No contacts found online', { icon: 'ℹ️' }); return }
@@ -383,14 +395,30 @@ export default function AgentDetailPage({ params }: { params: Promise<{ id: stri
           {/* AI Search */}
           <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4 text-purple-600" />
                   <span className="font-semibold text-slate-800 text-sm">Find Contacts with AI</span>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Claude searches the internet for emails, phones, websites and social profiles for this agency.
+                <p className="text-xs text-slate-500 mb-2">
+                  Claude searches the internet for emails, phones, websites and social profiles.
                 </p>
+                {searchSkills.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-purple-700 font-medium shrink-0">Skill:</label>
+                    <select
+                      value={selectedSkillId}
+                      onChange={(e) => setSelectedSkillId(e.target.value)}
+                      className="text-xs border border-purple-200 bg-white rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-purple-300 text-slate-700"
+                    >
+                      {searchSkills.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}{s.is_default ? ' (default)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <button
                 onClick={searchContacts}
